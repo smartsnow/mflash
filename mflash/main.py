@@ -48,8 +48,17 @@ def flasher(curdir, mcu, file_name, addr):
                 pos = int(out[prefix_len:], 0)
                 pbar.update(pos)
 
+long_description = '''MXCHIP Flash Tool.
+
+Author  : Snow Yang
+Mail    : yangsw@mxchip.com
+Version : 1.0.2
+
+Download firmware into module.
+'''
+
 def main():
-    parser = argparse.ArgumentParser(description='Download binary file to flash')
+    parser = argparse.ArgumentParser(description=long_description, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-m', '--mcu', type=str, required=True, help='mcu name')
     parser.add_argument('-f', '--file', type=str, required=True, help='file name')
     parser.add_argument('-a', '--addr', type=str, required=True, help='address')
