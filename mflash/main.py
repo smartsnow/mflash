@@ -33,7 +33,7 @@ def flasher(curdir, mcu, file_name, addr):
         ' -c flash_alg_pre_init' + \
         ' -c "flash_alg_init ' + os.path.join(curdir, 'flashloader', 'ramcode', mcu + '.elf') + '"' + \
         ' -c "write ' + file_name + ' ' + addr + '" -c shutdown'
-    proc = Popen(shlex.split(cmd_line), universal_newlines=True, stderr=PIPE)
+    proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
     logtext = ''
 
     while True:
@@ -52,7 +52,7 @@ long_description = '''MXCHIP Flash Tool.
 
 Author  : Snow Yang
 Mail    : yangsw@mxchip.com
-Version : 1.0.2
+Version : 1.0.3
 
 Download firmware into module.
 '''
