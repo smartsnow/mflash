@@ -1,11 +1,14 @@
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-from os import path
+from os import path, system
 # io.open is needed for projects that support Python 2.7
 # It ensures open() defaults to text mode with universal newlines,
 # and accepts an argument to specify the text encoding
 # Python 3 only projects can skip this import
 from io import open
+import subprocess
+import sys
+import webbrowser
 
 here = path.abspath(path.dirname(__file__))
 
@@ -36,7 +39,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.3',  # Required
+    version='1.0.9',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -191,6 +194,23 @@ setup(
     entry_points={  # Optional
         'console_scripts': [
             'mflash=mflash.main:main',
+            'mflashi=mflash.main:interactive',
         ],
     },
 )
+
+if sys.platform == 'win32':
+    # if not register
+    if subprocess.Popen('reg query "HKEY_CLASSES_ROOT\*\shell\mflash" /s', stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait() == 1:
+        curdir = path.join(sys.prefix, 'Scripts')
+        exefile = path.join(curdir, 'mflashi.exe')
+        regfile = path.join(curdir, 'rightclick.reg')
+        regdata = 'Windows Registry Editor Version 5.00\r\n' + \
+            '[HKEY_CLASSES_ROOT\*\shell\mflash]\r\n' + \
+            '@="mflash - Download"\r\n' + \
+            '[HKEY_CLASSES_ROOT\*\shell\mflash\command]\r\n' + \
+            '@=hex(2):' + ',00,'.join([i.to_bytes(1, 'big').hex() for i in ('"'+exefile+'"' + ' "%1"').encode()]) + ',00'
+        open(regfile, 'w').write(regdata)
+        system(regfile)
+
+webbrowser.open('https://www.mxchip.com')

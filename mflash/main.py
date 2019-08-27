@@ -31,8 +31,8 @@ def flasher(curdir, mcu, file_name, addr):
         ' -f ' + os.path.join(curdir, 'flashloader', 'scripts', 'cmd.tcl') + \
         ' -c init' + \
         ' -c flash_alg_pre_init' + \
-        ' -c "flash_alg_init ' + os.path.join(curdir, 'flashloader', 'ramcode', mcu + '.elf') + '"' + \
-        ' -c "write ' + file_name + ' ' + addr + '" -c shutdown'
+        ' -c "flash_alg_init ' + os.path.join(curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
+        ' -c "write ' + file_name.replace('\\', '/') + ' ' + addr + '" -c shutdown'
     proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
     logtext = ''
 
@@ -52,9 +52,7 @@ long_description = '''MXCHIP Flash Tool.
 
 Author  : Snow Yang
 Mail    : yangsw@mxchip.com
-Version : 1.0.3
-
-Download firmware into module.
+Version : 1.0.9
 '''
 
 def main():
@@ -67,6 +65,26 @@ def main():
     args = parser.parse_args(sys.argv[1:])
 
     flasher(curdir, args.mcu, args.file, args.addr)
+
+def interactive():
+    print(long_description)
+
+    if len(sys.argv) == 1:
+        print('mflashi <file name>')
+        return 1
+    
+    mcu_list = ['mx1270', 'mx1290']
+    curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+    _file = sys.argv[1]
+    print('MCU list:')
+    for i, name in enumerate(mcu_list):
+        print(' %d - %s'%(i, name))
+    mcu = mcu_list[int(input('MCU Number: '))]
+    addr = input('Download Address: ')
+
+    flasher(curdir, mcu, _file, addr)
+
+    input('Press any key to exit: ')
 
 if __name__ == "__main__":
     main()
