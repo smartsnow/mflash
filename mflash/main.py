@@ -38,7 +38,7 @@ def flasher(curdir, mcu, file_name, addr):
 
     while True:
         out = proc.stderr.readline().strip()
-        logtext += out
+        logtext += out + '\r\n'
         if proc.poll() != None:
             if proc.poll():
                 print(logtext)
@@ -52,7 +52,7 @@ long_description = '''MXCHIP Flash Tool.
 
 Author  : Snow Yang
 Mail    : yangsw@mxchip.com
-Version : 1.0.9
+Version : 1.1.0
 '''
 
 def main():
@@ -72,9 +72,12 @@ def interactive():
     if len(sys.argv) == 1:
         print('mflashi <file name>')
         return 1
-    
-    mcu_list = ['mx1270', 'mx1290']
     curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+    mcu_list = []
+    for root, dirs, files in os.walk(os.path.join(curdir, 'targets')):
+        for name in files:
+            if name.endswith('.cfg'):
+                mcu_list.append(os.path.splitext(name)[0])
     _file = sys.argv[1]
     print('MCU list:')
     for i, name in enumerate(mcu_list):

@@ -43,7 +43,7 @@ proc flash_alg_cmd_run { timeout } {
     mww $::FLASH_ALG_RDY_LOC 1
 
     loop t 0 $timeout 1 {
-        after 1
+        after 3
         set ret [memread32 $::FLASH_ALG_RDY_LOC]  
         if { $ret == 0 } {
             set ret [memread32 $::FLASH_ALG_RET_LOC]
