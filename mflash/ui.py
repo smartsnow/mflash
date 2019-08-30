@@ -18,20 +18,27 @@ class UserWidget(QWidget):
         vLayout = QVBoxLayout(self)
         h0Layout = QHBoxLayout()
         vLayout.addLayout(h0Layout)
-        self.comboBox = QComboBox()
-        h0Layout.addWidget(self.comboBox)
-        self.lineEdit = QLineEdit()
-        h0Layout.addWidget(self.lineEdit)
-        self.button = QPushButton(QIcon(os.path.join(curdir, 'resources/download.png')), '')
-        self.button.setToolTip('Download')
-        h0Layout.addWidget(self.button)
+        self.fileNameLineEdit = QLineEdit()
+        h0Layout.addWidget(self.fileNameLineEdit)
+        self.fileNameLineEdit.setReadOnly(True)
+        self.helpButton = QPushButton(QIcon(os.path.join(curdir, 'resources/help.png')), '')
+        h0Layout.addWidget(self.helpButton)
         h1Layout = QHBoxLayout()
         vLayout.addLayout(h1Layout)
+        self.comboBox = QComboBox()
+        h1Layout.addWidget(self.comboBox)
+        self.lineEdit = QLineEdit()
+        h1Layout.addWidget(self.lineEdit)
+        self.button = QPushButton(QIcon(os.path.join(curdir, 'resources/download.png')), '')
+        self.button.setToolTip('Download')
+        h1Layout.addWidget(self.button)
+        h2Layout = QHBoxLayout()
+        vLayout.addLayout(h2Layout)
         self.progressBar = QProgressBar()
-        h1Layout.addWidget(self.progressBar)
+        h2Layout.addWidget(self.progressBar)
         self.showHideLogButton = QPushButton(QIcon(os.path.join(curdir, 'resources/log.png')), '')
         self.showHideLogButton.setToolTip('Show/Hide log')
-        h1Layout.addWidget(self.showHideLogButton)
+        h2Layout.addWidget(self.showHideLogButton)
         self.plainTextEdit = QPlainTextEdit()
         self.plainTextEdit.hide()
         vLayout.addWidget(self.plainTextEdit)
@@ -40,11 +47,27 @@ class UserWidget(QWidget):
 PREFIX = '-->'
 prefix_len = len(PREFIX)
 
+infoText = '''MXCHIP Flash Tool.
+
+Author : Snow Yang
+Mail : yangsw@mxchip.com
+Version : 1.2.1
+'''
+
+helpText = '''FLASH MAP
+--------------------------------
+MX1270
+Bootloader : 0x00
+Application : 0xA000
+ATE : 0x100000
+--------------------------------
+'''
 
 class Worker(QThread):
 
     signalProgressBar = pyqtSignal(int)
     signalPlainTextEdit = pyqtSignal(str)
+    signalMessageBox = pyqtSignal(str)
 
     def __init__(self, widget):
         super().__init__()
@@ -65,12 +88,21 @@ class Worker(QThread):
         self.widget.button.clicked.connect(self.download)
         self.logShow = False
         self.widget.showHideLogButton.clicked.connect(self.showHideLog)
+        self.widget.helpButton.clicked.connect(self.showHelp)
         self.signalProgressBar.connect(lambda value: self.widget.progressBar.setValue(value))
         self.signalPlainTextEdit.connect(lambda text: self.widget.plainTextEdit.appendPlainText(text))
+        self.signalMessageBox.connect(lambda text: QMessageBox.critical(self.widget, '', text, QMessageBox.Yes, QMessageBox.Yes))
 
-        self.filename = sys.argv[1]
+        self.filename = self.widget.fileNameLineEdit.text()
         self.widget.progressBar.setMinimum(0)
         self.widget.progressBar.setMaximum(os.path.getsize(self.filename))
+
+    def showHelp(self):
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle('Help')
+        msgBox.setText(infoText)
+        msgBox.setInformativeText(helpText)
+        msgBox.exec()
 
     def showHideLog(self):
         if self.logShow:
@@ -113,6 +145,9 @@ class Worker(QThread):
                 if out[:prefix_len] == PREFIX:
                     self.signalProgressBar.emit(int(out[prefix_len:], 0))
 
+        if proc.poll():
+            self.signalMessageBox.emit('Download Failed!')
+
 def main():
     app = QApplication(sys.argv)
     app.setFont(QFont("Calibri"))
@@ -120,6 +155,7 @@ def main():
     curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
     app.setWindowIcon(QIcon(os.path.join(curdir, 'resources/flash.png')))
     widget = UserWidget()
+    widget.fileNameLineEdit.setText(sys.argv[1])
     widget.show()
     worker = Worker(widget)
     worker.start()
