@@ -39,7 +39,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.1.0',  # Required
+    version='1.2.0',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -135,7 +135,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[],  # Optional
+    install_requires=['qdarkstyle==2.7', 'pyqt5==5.10.1'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -174,7 +174,10 @@ setup(
             'flashloader/ramcode/mx1270.elf',
             'flashloader/ramcode/emc3380.elf',
             'flashloader/scripts/cmd.tcl',
-            'flashloader/scripts/flash.tcl'
+            'flashloader/scripts/flash.tcl',
+            'resources/flash.png',
+            'resources/download.png',
+            'resources/log.png',
         ]
     },
 
@@ -196,23 +199,24 @@ setup(
     entry_points={  # Optional
         'console_scripts': [
             'mflash=mflash.main:main',
-            'mflashi=mflash.main:interactive',
+            'mflashi=mflash.ui:main',
         ],
     },
+
+    scripts = ['start.vbs']
 )
 
 if sys.platform == 'win32':
     # if not register
-    if subprocess.Popen('reg query "HKEY_CLASSES_ROOT\*\shell\mflash" /s', stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait() == 1:
-        curdir = path.join(sys.prefix, 'Scripts')
-        exefile = path.join(curdir, 'mflashi.exe')
-        regfile = path.join(curdir, 'rightclick.reg')
-        regdata = 'Windows Registry Editor Version 5.00\r\n' + \
-            '[HKEY_CLASSES_ROOT\*\shell\mflash]\r\n' + \
-            '@="mflash - Download"\r\n' + \
-            '[HKEY_CLASSES_ROOT\*\shell\mflash\command]\r\n' + \
-            '@=hex(2):' + ',00,'.join([i.to_bytes(1, 'big').hex() for i in ('"'+exefile+'"' + ' "%1"').encode()]) + ',00'
-        open(regfile, 'w').write(regdata)
-        system(regfile)
+    curdir = path.join(sys.prefix, 'Scripts')
+    exefile = path.join(curdir, 'start.vbs')
+    regfile = path.join(curdir, 'rightclick.reg')
+    regdata = 'Windows Registry Editor Version 5.00\r\n' + \
+        '[HKEY_CLASSES_ROOT\*\shell\mflash]\r\n' + \
+        '@="mflash - Download"\r\n' + \
+        '[HKEY_CLASSES_ROOT\*\shell\mflash\command]\r\n' + \
+        '@=hex(2):' + ',00,'.join([i.to_bytes(1, 'big').hex() for i in ('Wscript.exe "'+exefile+'"' + ' "%1"').encode()]) + ',00'
+    open(regfile, 'w').write(regdata)
+    system(regfile)
 
 webbrowser.open('https://www.mxchip.com')
