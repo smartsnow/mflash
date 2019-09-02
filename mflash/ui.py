@@ -51,7 +51,7 @@ infoText = '''MXCHIP Flash Tool.
 
 Author : Snow Yang
 Mail : yangsw@mxchip.com
-Version : 1.2.1
+Version : 1.2.2
 '''
 
 helpText = '''FLASH MAP
@@ -62,6 +62,12 @@ Application : 0xA000
 ATE : 0x100000
 --------------------------------
 '''
+
+errorLogReasonDict = {
+"in procedure 'ocd_bouncer'": 'Please check JTAG/SWD connection.',
+'LIBUSB_ERROR_NOT_FOUND.': 'Please download "Zadig", and replace J-Link driver with "WinUSB".',
+'Error: No J-Link device found.':'Please check J-Link USB connection.'
+}
 
 class Worker(QThread):
 
@@ -136,8 +142,10 @@ class Worker(QThread):
             self.filename.replace('\\', '/') + ' ' + addr + '" -c shutdown'
         proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
 
+        log = ''
         while True:
             out = proc.stderr.readline().strip()
+            log += out
             self.signalPlainTextEdit.emit(out)
             if proc.poll() != None:
                 break
@@ -146,7 +154,12 @@ class Worker(QThread):
                     self.signalProgressBar.emit(int(out[prefix_len:], 0))
 
         if proc.poll():
-            self.signalMessageBox.emit('Download Failed!')
+            reason = 'Unkown Reason'
+            for errorLog in errorLogReasonDict:
+                if errorLog in log:
+                    reason = errorLogReasonDict[errorLog]
+                    break
+            self.signalMessageBox.emit('Download Failed!\r\n\r\nReason:\r\n%s' % (reason))
 
 def main():
     app = QApplication(sys.argv)
