@@ -26,7 +26,7 @@ proc flash_alg_init { alg_elf } {
 
     global FLASH_ALG_BUF_SIZE
 
-    reset halt
+    halt
 
     load_image $alg_elf
 

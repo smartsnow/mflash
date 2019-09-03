@@ -25,7 +25,7 @@ def flasher(curdir, mcu, file_name, addr):
 
     cmd_line = openocd + \
         ' -s ' + curdir + \
-        ' -f ' + os.path.join(curdir, 'interface', 'jlink_swd.cfg') + \
+        ' -f ' + os.path.join(curdir, 'interface', 'stlink-v2.cfg') + \
         ' -f ' + os.path.join(curdir, 'targets', mcu + '.cfg') + \
         ' -f ' + os.path.join(curdir, 'flashloader', 'scripts', 'flash.tcl') + \
         ' -f ' + os.path.join(curdir, 'flashloader', 'scripts', 'cmd.tcl') + \

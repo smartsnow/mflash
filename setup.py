@@ -39,7 +39,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.2.2',  # Required
+    version='1.2.3',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -154,7 +154,10 @@ setup(
     # If using Python 2.6 or earlier, then these have to be included in
     # MANIFEST.in as well.
     package_data={  # Optional
-        'mflash': ['interface/jlink_swd.cfg',
+        'mflash': ['interface/swj-dp.tcl',
+            'interface/stlink-v2.cfg',
+            'interface/stlink-v2-1.cfg',
+            'interface/jlink_swd.cfg',
             'openocd/osx/libusb-0.1.4.dylib',
             'openocd/osx/openocd_mxos_run',
             'openocd/osx/openocd_mxos_dirname',
@@ -169,10 +172,10 @@ setup(
             'openocd/win/libftdi1.dll',
             'targets/mx1270.cfg',
             'targets/mx1290.cfg',
-            'targets/emc3380.cfg',
+            'targets/mx1410.cfg',
             'flashloader/ramcode/mx1290.elf',
             'flashloader/ramcode/mx1270.elf',
-            'flashloader/ramcode/emc3380.elf',
+            'flashloader/ramcode/mx1410.elf',
             'flashloader/scripts/cmd.tcl',
             'flashloader/scripts/flash.tcl',
             'resources/flash.png',

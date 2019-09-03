@@ -25,10 +25,13 @@ class UserWidget(QWidget):
         h0Layout.addWidget(self.helpButton)
         h1Layout = QHBoxLayout()
         vLayout.addLayout(h1Layout)
-        self.comboBox = QComboBox()
-        h1Layout.addWidget(self.comboBox)
+        self.moduleComboBox = QComboBox()
+        h1Layout.addWidget(self.moduleComboBox)
+        self.debuggerComboBox = QComboBox()
+        h1Layout.addWidget(self.debuggerComboBox)
         self.lineEdit = QLineEdit()
         h1Layout.addWidget(self.lineEdit)
+        self.lineEdit.setPlaceholderText('Address')
         self.button = QPushButton(QIcon(os.path.join(curdir, 'resources/download.png')), '')
         self.button.setToolTip('Download')
         h1Layout.addWidget(self.button)
@@ -51,7 +54,7 @@ infoText = '''MXCHIP Flash Tool.
 
 Author : Snow Yang
 Mail : yangsw@mxchip.com
-Version : 1.2.2
+Version : 1.2.3
 '''
 
 helpText = '''FLASH MAP
@@ -78,14 +81,22 @@ class Worker(QThread):
     def __init__(self, widget):
         super().__init__()
         self.curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+
+        self.widget = widget
+
         self.mculist = []
         for _root, _dirs, files in os.walk(os.path.join(self.curdir, 'targets')):
             for name in files:
                 if name.endswith('.cfg'):
                     self.mculist.append(os.path.splitext(name)[0])
+        self.widget.moduleComboBox.addItems(self.mculist)
 
-        self.widget = widget
-        self.widget.comboBox.addItems(self.mculist)
+        self.deubbgerList = []
+        for _root, _dirs, files in os.walk(os.path.join(self.curdir, 'interface')):
+            for name in files:
+                if name.endswith('.cfg'):
+                    self.deubbgerList.append(os.path.splitext(name)[0])
+        self.widget.debuggerComboBox.addItems(self.deubbgerList)
 
         hostos = 'osx' if sys.platform == 'darwin' else 'Linux64' if sys.platform == 'linux2' else 'win'
         self.openocd = os.path.join(self.curdir, 'openocd', hostos, 'openocd_mxos')
@@ -120,18 +131,20 @@ class Worker(QThread):
         self.widget.adjustSize()
 
     def download(self):
-        self.widget.comboBox.setEnabled(False)
+        self.widget.moduleComboBox.setEnabled(False)
+        self.widget.debuggerComboBox.setEnabled(False)
         self.widget.lineEdit.setEnabled(False)
         self.widget.button.setEnabled(False)
         self.semaphore.release()
 
     def run(self):
         self.semaphore.acquire()
-        mcu = self.widget.comboBox.currentText()
+        mcu = self.widget.moduleComboBox.currentText()
+        debugger = self.widget.debuggerComboBox.currentText()
         addr = self.widget.lineEdit.text()
         cmd_line = self.openocd + \
             ' -s ' + self.curdir + \
-            ' -f ' + os.path.join(self.curdir, 'interface', 'jlink_swd.cfg') + \
+            ' -f ' + os.path.join(self.curdir, 'interface', debugger + '.cfg') + \
             ' -f ' + os.path.join(self.curdir, 'targets', mcu + '.cfg') + \
             ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'flash.tcl') + \
             ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'cmd.tcl') + \
