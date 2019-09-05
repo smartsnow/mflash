@@ -6,6 +6,44 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from subprocess import Popen, CalledProcessError, PIPE
 
+class UserTableWidget(QTableWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.setColumnCount(2)
+        self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setVisible(False)
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+    def addRow(self, *rowItems):
+        rowPosition = self.rowCount()
+        self.insertRow(rowPosition)
+        for i in range(self.columnCount()):
+            self.setItem(rowPosition, i, QTableWidgetItem(rowItems[i]))
+        self.resizeRowToContents(rowPosition)
+
+class HelpWidet(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Help')
+        vLayout = QVBoxLayout(self)
+        vLayout.addWidget(QLabel('Information'))
+        self.infoTable = UserTableWidget()
+        vLayout.addWidget(self.infoTable)
+        self.infoTable.addRow('Author', 'Snow Yang')
+        self.infoTable.addRow('Mail', 'yangsw@mxchip.com')
+        self.infoTable.addRow('Version', '1.2.4')
+        self.infoTable.setMaximumHeight(self.infoTable.rowHeight(0) * 3.2)
+        self.label = QLabel('')
+        vLayout.addWidget(self.label)
+        self.label.setScaledContents(True)
+        curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+        self.label.setPixmap(QPixmap(os.path.join(curdir, 'resources', 'connection.png')))
+        vLayout.addStretch()
 
 class UserWidget(QWidget):
 
@@ -15,7 +53,9 @@ class UserWidget(QWidget):
         self.setWindowTitle('MXCHIP Flash Tool')
         curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
-        vLayout = QVBoxLayout(self)
+        hLayout = QHBoxLayout(self)
+        vLayout = QVBoxLayout()
+        hLayout.addLayout(vLayout)
         h0Layout = QHBoxLayout()
         vLayout.addLayout(h0Layout)
         self.fileNameLineEdit = QLineEdit()
@@ -31,7 +71,8 @@ class UserWidget(QWidget):
         h1Layout.addWidget(self.debuggerComboBox)
         self.lineEdit = QLineEdit()
         h1Layout.addWidget(self.lineEdit)
-        self.lineEdit.setPlaceholderText('Address')
+        self.lineEdit.setText('0x00')
+        self.lineEdit.setMinimumWidth(80)
         self.button = QPushButton(QIcon(os.path.join(curdir, 'resources/download.png')), '')
         self.button.setToolTip('Download')
         h1Layout.addWidget(self.button)
@@ -45,26 +86,16 @@ class UserWidget(QWidget):
         self.plainTextEdit = QPlainTextEdit()
         self.plainTextEdit.hide()
         vLayout.addWidget(self.plainTextEdit)
+        v0Layout = QVBoxLayout()
+        hLayout.addLayout(v0Layout)
         self.plainTextEdit.setReadOnly(True)
+        self.picLabel = QLabel('')
+        v0Layout.addWidget(self.picLabel)
+        self.picLabel.setScaledContents(True)
+        v0Layout.addStretch()
 
 PREFIX = '-->'
 prefix_len = len(PREFIX)
-
-infoText = '''MXCHIP Flash Tool.
-
-Author : Snow Yang
-Mail : yangsw@mxchip.com
-Version : 1.2.3
-'''
-
-helpText = '''FLASH MAP
---------------------------------
-MX1270
-Bootloader : 0x00
-Application : 0xA000
-ATE : 0x100000
---------------------------------
-'''
 
 errorLogReasonDict = {
 "in procedure 'ocd_bouncer'": 'Please check JTAG/SWD connection.',
@@ -106,6 +137,7 @@ class Worker(QThread):
         self.logShow = False
         self.widget.showHideLogButton.clicked.connect(self.showHideLog)
         self.widget.helpButton.clicked.connect(self.showHelp)
+        self.widget.debuggerComboBox.currentTextChanged.connect(self.showDebugger)
         self.signalProgressBar.connect(lambda value: self.widget.progressBar.setValue(value))
         self.signalPlainTextEdit.connect(lambda text: self.widget.plainTextEdit.appendPlainText(text))
         self.signalMessageBox.connect(lambda text: QMessageBox.critical(self.widget, '', text, QMessageBox.Yes, QMessageBox.Yes))
@@ -114,12 +146,16 @@ class Worker(QThread):
         self.widget.progressBar.setMinimum(0)
         self.widget.progressBar.setMaximum(os.path.getsize(self.filename))
 
+        self.widget.debuggerComboBox.setCurrentText('jlink_swd')
+        self.showDebugger('jlink_swd')
+
+        self.helpWidet = HelpWidet()
+
+    def showDebugger(self, text):
+        self.widget.picLabel.setPixmap(QPixmap(os.path.join(self.curdir, 'resources', text + '.png')))
+
     def showHelp(self):
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle('Help')
-        msgBox.setText(infoText)
-        msgBox.setInformativeText(helpText)
-        msgBox.exec()
+        self.helpWidet.show()
 
     def showHideLog(self):
         if self.logShow:
