@@ -36,7 +36,7 @@ class HelpWidet(QWidget):
         vLayout.addWidget(self.infoTable)
         self.infoTable.addRow('Author', 'Snow Yang')
         self.infoTable.addRow('Mail', 'yangsw@mxchip.com')
-        self.infoTable.addRow('Version', '1.2.4')
+        self.infoTable.addRow('Version', '1.2.5')
         self.infoTable.setMaximumHeight(self.infoTable.rowHeight(0) * 3.2)
         self.label = QLabel('')
         vLayout.addWidget(self.label)
@@ -61,8 +61,9 @@ class UserWidget(QWidget):
         self.fileNameLineEdit = QLineEdit()
         h0Layout.addWidget(self.fileNameLineEdit)
         self.fileNameLineEdit.setReadOnly(True)
-        self.helpButton = QPushButton(QIcon(os.path.join(curdir, 'resources/help.png')), '')
-        h0Layout.addWidget(self.helpButton)
+        self.openFileButton = QPushButton(QIcon(os.path.join(curdir, 'resources/open.png')), '')
+        h0Layout.addWidget(self.openFileButton)
+        self.openFileButton.setToolTip('Open File')
         h1Layout = QHBoxLayout()
         vLayout.addLayout(h1Layout)
         self.moduleComboBox = QComboBox()
@@ -81,8 +82,11 @@ class UserWidget(QWidget):
         self.progressBar = QProgressBar()
         h2Layout.addWidget(self.progressBar)
         self.showHideLogButton = QPushButton(QIcon(os.path.join(curdir, 'resources/log.png')), '')
-        self.showHideLogButton.setToolTip('Show/Hide log')
         h2Layout.addWidget(self.showHideLogButton)
+        self.showHideLogButton.setToolTip('Show/Hide log')
+        self.helpButton = QPushButton(QIcon(os.path.join(curdir, 'resources/help.png')), '')
+        h2Layout.addWidget(self.helpButton)
+        self.helpButton.setToolTip('Help')
         self.plainTextEdit = QPlainTextEdit()
         self.plainTextEdit.hide()
         vLayout.addWidget(self.plainTextEdit)
@@ -105,6 +109,7 @@ errorLogReasonDict = {
 
 class Worker(QThread):
 
+    signalSetProgressBarMax = pyqtSignal(int)
     signalProgressBar = pyqtSignal(int)
     signalPlainTextEdit = pyqtSignal(str)
     signalMessageBox = pyqtSignal(str)
@@ -137,19 +142,26 @@ class Worker(QThread):
         self.logShow = False
         self.widget.showHideLogButton.clicked.connect(self.showHideLog)
         self.widget.helpButton.clicked.connect(self.showHelp)
+        self.widget.openFileButton.clicked.connect(self.openFile)
         self.widget.debuggerComboBox.currentTextChanged.connect(self.showDebugger)
+
+        self.signalSetProgressBarMax.connect(lambda value: self.widget.progressBar.setMaximum(value))
         self.signalProgressBar.connect(lambda value: self.widget.progressBar.setValue(value))
         self.signalPlainTextEdit.connect(lambda text: self.widget.plainTextEdit.appendPlainText(text))
         self.signalMessageBox.connect(lambda text: QMessageBox.critical(self.widget, '', text, QMessageBox.Yes, QMessageBox.Yes))
 
-        self.filename = self.widget.fileNameLineEdit.text()
         self.widget.progressBar.setMinimum(0)
-        self.widget.progressBar.setMaximum(os.path.getsize(self.filename))
 
         self.widget.debuggerComboBox.setCurrentText('jlink_swd')
         self.showDebugger('jlink_swd')
 
         self.helpWidet = HelpWidet()
+
+    def openFile(self):
+        filename, filetype = QFileDialog.getOpenFileName(self.widget, "Open Image", os.path.dirname(self.widget.fileNameLineEdit.text()), "Binary file (*.bin)")
+        if not filename:
+            return
+        self.widget.fileNameLineEdit.setText(filename)
 
     def showDebugger(self, text):
         self.widget.picLabel.setPixmap(QPixmap(os.path.join(self.curdir, 'resources', text + '.png')))
@@ -171,44 +183,54 @@ class Worker(QThread):
         self.widget.debuggerComboBox.setEnabled(False)
         self.widget.lineEdit.setEnabled(False)
         self.widget.button.setEnabled(False)
+        self.widget.openFileButton.setEnabled(False)
         self.semaphore.release()
 
     def run(self):
-        self.semaphore.acquire()
-        mcu = self.widget.moduleComboBox.currentText()
-        debugger = self.widget.debuggerComboBox.currentText()
-        addr = self.widget.lineEdit.text()
-        cmd_line = self.openocd + \
-            ' -s ' + self.curdir + \
-            ' -f ' + os.path.join(self.curdir, 'interface', debugger + '.cfg') + \
-            ' -f ' + os.path.join(self.curdir, 'targets', mcu + '.cfg') + \
-            ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'flash.tcl') + \
-            ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'cmd.tcl') + \
-            ' -c init' + \
-            ' -c flash_alg_pre_init' + \
-            ' -c "flash_alg_init ' + os.path.join(self.curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
-            ' -c "write ' + \
-            self.filename.replace('\\', '/') + ' ' + addr + '" -c shutdown'
-        proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
-
-        log = ''
         while True:
-            out = proc.stderr.readline().strip()
-            log += out
-            self.signalPlainTextEdit.emit(out)
-            if proc.poll() != None:
-                break
-            else:
-                if out[:prefix_len] == PREFIX:
-                    self.signalProgressBar.emit(int(out[prefix_len:], 0))
+            self.semaphore.acquire()
+            mcu = self.widget.moduleComboBox.currentText()
+            debugger = self.widget.debuggerComboBox.currentText()
+            addr = self.widget.lineEdit.text()
+            filename = self.widget.fileNameLineEdit.text()
+            self.signalSetProgressBarMax.emit(os.path.getsize(filename))
 
-        if proc.poll():
-            reason = 'Unkown Reason'
-            for errorLog in errorLogReasonDict:
-                if errorLog in log:
-                    reason = errorLogReasonDict[errorLog]
+            cmd_line = self.openocd + \
+                ' -s ' + self.curdir + \
+                ' -f ' + os.path.join(self.curdir, 'interface', debugger + '.cfg') + \
+                ' -f ' + os.path.join(self.curdir, 'targets', mcu + '.cfg') + \
+                ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'flash.tcl') + \
+                ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'cmd.tcl') + \
+                ' -c init' + \
+                ' -c flash_alg_pre_init' + \
+                ' -c "flash_alg_init ' + os.path.join(self.curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
+                ' -c "write ' + \
+                filename.replace('\\', '/') + ' ' + addr + '" -c shutdown'
+            proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
+
+            log = ''
+            while True:
+                out = proc.stderr.readline().strip()
+                log += out
+                self.signalPlainTextEdit.emit(out)
+                if proc.poll() != None:
                     break
-            self.signalMessageBox.emit('Download Failed!\r\n\r\nReason:\r\n%s' % (reason))
+                else:
+                    if out[:prefix_len] == PREFIX:
+                        self.signalProgressBar.emit(int(out[prefix_len:], 0))
+
+            if proc.poll():
+                reason = 'Unkown Reason'
+                for errorLog in errorLogReasonDict:
+                    if errorLog in log:
+                        reason = errorLogReasonDict[errorLog]
+                        break
+                self.signalMessageBox.emit('Download Failed!\r\n\r\nReason:\r\n%s' % (reason))
+            self.widget.moduleComboBox.setEnabled(True)
+            self.widget.debuggerComboBox.setEnabled(True)
+            self.widget.lineEdit.setEnabled(True)
+            self.widget.button.setEnabled(True)
+            self.widget.openFileButton.setEnabled(True)
 
 def main():
     app = QApplication(sys.argv)
