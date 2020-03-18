@@ -1,3 +1,8 @@
+# -*- coding: UTF-8 -*-
+# Date    : 2018/08/07
+# Author  : Snow Yang
+# Mail    : yangsw@mxchip.com
+
 import os
 import sys
 import qdarkstyle
