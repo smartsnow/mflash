@@ -158,6 +158,7 @@ setup(
             'interface/stlink-v2.cfg',
             'interface/stlink-v2-1.cfg',
             'interface/jlink_swd.cfg',
+            'interface/mxlink.cfg',
             'openocd/osx/libusb-0.1.4.dylib',
             'openocd/osx/openocd_mxos_run',
             'openocd/osx/openocd_mxos_dirname',
@@ -186,6 +187,7 @@ setup(
             'resources/jlink_swd.png',
             'resources/stlink-v2-1.png',
             'resources/stlink-v2.png',
+            'resources/mxlink.png',
             'resources/open.png',
         ]
     },
