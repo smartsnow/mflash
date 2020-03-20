@@ -9,6 +9,7 @@ from io import open
 import subprocess
 import sys
 import webbrowser
+import shutil
 
 here = path.abspath(path.dirname(__file__))
 
@@ -39,7 +40,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.2.5',  # Required
+    version='1.2.6',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -217,9 +218,9 @@ setup(
     scripts = ['start.vbs']
 )
 
+curdir = path.join(sys.prefix, 'Scripts')
 if sys.platform == 'win32':
     # if not register
-    curdir = path.join(sys.prefix, 'Scripts')
     exefile = path.join(curdir, 'start.vbs')
     regfile = path.join(curdir, 'rightclick.reg')
     regdata = 'Windows Registry Editor Version 5.00\r\n' + \
@@ -229,5 +230,8 @@ if sys.platform == 'win32':
         '@=hex(2):' + ',00,'.join([i.to_bytes(1, 'big').hex() for i in ('Wscript.exe "'+exefile+'"' + ' "%1"').encode()]) + ',00'
     open(regfile, 'w').write(regdata)
     system(regfile)
+elif sys.platform == 'darwin':
+    workflow = path.join(curdir, 'mflash.workflow')
+    shutil.copytree(workflow, '~/Library/Services')
 
 webbrowser.open('https://www.mxchip.com')
