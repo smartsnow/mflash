@@ -52,7 +52,7 @@ long_description = '''MXCHIP Flash Tool.
 
 Author  : Snow Yang
 Mail    : yangsw@mxchip.com
-Version : 1.2.5
+Version : 1.2.6
 '''
 
 def main():
