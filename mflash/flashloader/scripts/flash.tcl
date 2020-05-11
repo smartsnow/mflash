@@ -26,16 +26,16 @@ proc flash_alg_init { alg_elf } {
 
     global FLASH_ALG_BUF_SIZE
 
-    halt
+    #halt
 
     load_image $alg_elf
 
     set FLASH_ALG_ENTRY [memread32 $::FLASH_ALG_ENTRY_LOC]
     set FLASH_ALG_BUF_SIZE [memread32 $::FLASH_ALG_BUF_SIZE_LOC]
-
+	
     reg pc $FLASH_ALG_ENTRY
 
-    resume
+    #resume
 }
 
 proc flash_alg_cmd_run { timeout } {
@@ -43,7 +43,9 @@ proc flash_alg_cmd_run { timeout } {
     mww $::FLASH_ALG_RDY_LOC 1
 
     loop t 0 $timeout 1 {
+    	resume
         after 3
+        halt
         set ret [memread32 $::FLASH_ALG_RDY_LOC]  
         if { $ret == 0 } {
             set ret [memread32 $::FLASH_ALG_RET_LOC]
