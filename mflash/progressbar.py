@@ -24,7 +24,7 @@ class ProgressBar():
         if value > self.max_value:
             raise ValueError('value to large')
         marker_width = value * self.width // self.max_value
-        if marker_width <= self.last_width:
+        if marker_width == self.last_width:
             return
         speed = 0
         t = perf_counter()
@@ -47,6 +47,9 @@ class ProgressBar():
 
 if __name__ == "__main__":
     bar = ProgressBar(1024 * 36)
+    for i in range(36):
+        bar.update((i + 1) * 1024)
+        sleep(0.1)
     for i in range(36):
         bar.update((i + 1) * 1024)
         sleep(0.1)

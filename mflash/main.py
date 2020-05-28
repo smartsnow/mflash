@@ -32,6 +32,7 @@ def flasher(curdir, mcu, file_name, addr, debugger):
         ' -c init' + \
         ' -c flash_alg_pre_init' + \
         ' -c "flash_alg_init ' + os.path.join(curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
+        ' -c "erase ' + addr + ' ' + '%d'%os.path.getsize(file_name) + '"' + \
         ' -c "write ' + file_name.replace('\\', '/') + ' ' + addr + '" -c shutdown'
     proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
     logtext = ''

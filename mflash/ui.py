@@ -41,7 +41,7 @@ class HelpWidet(QWidget):
         vLayout.addWidget(self.infoTable)
         self.infoTable.addRow('Author', 'Snow Yang')
         self.infoTable.addRow('Mail', 'yangsw@mxchip.com')
-        self.infoTable.addRow('Version', '1.2.6')
+        self.infoTable.addRow('Version', '1.2.8')
         self.infoTable.setMaximumHeight(self.infoTable.rowHeight(0) * 3.2)
         self.label = QLabel('')
         vLayout.addWidget(self.label)
@@ -209,6 +209,7 @@ class Worker(QThread):
                 ' -c init' + \
                 ' -c flash_alg_pre_init' + \
                 ' -c "flash_alg_init ' + os.path.join(self.curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
+                ' -c "erase ' + addr + ' ' + '%d'%os.path.getsize(filename) + '"' + \
                 ' -c "write ' + \
                 filename.replace('\\', '/') + ' ' + addr + '" -c shutdown'
             proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
