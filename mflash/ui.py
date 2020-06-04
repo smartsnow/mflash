@@ -41,7 +41,7 @@ class HelpWidet(QWidget):
         vLayout.addWidget(self.infoTable)
         self.infoTable.addRow('Author', 'Snow Yang')
         self.infoTable.addRow('Mail', 'yangsw@mxchip.com')
-        self.infoTable.addRow('Version', '1.2.10')
+        self.infoTable.addRow('Version', '1.2.11')
         self.infoTable.setMaximumHeight(self.infoTable.rowHeight(0) * 3.2)
         self.label = QLabel('')
         vLayout.addWidget(self.label)
