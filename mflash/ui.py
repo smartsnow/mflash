@@ -11,6 +11,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from subprocess import Popen, CalledProcessError, PIPE
 
+from .version import *
+
 class UserTableWidget(QTableWidget):
 
     def __init__(self):
@@ -39,9 +41,9 @@ class HelpWidet(QWidget):
         vLayout.addWidget(QLabel('Information'))
         self.infoTable = UserTableWidget()
         vLayout.addWidget(self.infoTable)
-        self.infoTable.addRow('Author', 'Snow Yang')
-        self.infoTable.addRow('Mail', 'yangsw@mxchip.com')
-        self.infoTable.addRow('Version', '1.2.11')
+        self.infoTable.addRow('Author', author)
+        self.infoTable.addRow('Mail', email)
+        self.infoTable.addRow('Version', version)
         self.infoTable.setMaximumHeight(self.infoTable.rowHeight(0) * 3.2)
         self.label = QLabel('')
         vLayout.addWidget(self.label)
@@ -207,8 +209,8 @@ class Worker(QThread):
                 ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'flash.tcl') + \
                 ' -f ' + os.path.join(self.curdir, 'flashloader', 'scripts', 'cmd.tcl') + \
                 ' -c init' + \
-                ' -c flash_alg_pre_init' + \
-                ' -c "flash_alg_init ' + os.path.join(self.curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
+                ' -c mflash_pre_init' + \
+                ' -c "mflash_init ' + os.path.join(self.curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
                 ' -c unlock' + \
                 ' -c "erase ' + addr + ' ' + '%d'%os.path.getsize(filename) + '"' + \
                 ' -c "write ' + \

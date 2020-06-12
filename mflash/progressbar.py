@@ -9,15 +9,13 @@ from .terminal import get_terminal_size
 
 
 class ProgressBar():
-    def __init__(self, max_value, marker='█', fill='░'):
+    def __init__(self, max_value, marker='#', fill='-'):
         self.marker = marker
         self.max_value = max_value
         self.fill = fill
         w = get_terminal_size()[0]
         self.width = w - 5 - 9 - 12 - 9
         self.last_width = 0
-        self.last_value = 0
-        self.last_time = 0
         self.start_time = 0
 
     def update(self, value):
@@ -28,12 +26,11 @@ class ProgressBar():
             return
         speed = 0
         t = perf_counter()
-        if self.last_time > 0:
-            speed = (value - self.last_value) / (t - self.last_time)
+        if self.start_time > 0:
+            speed = value / (t - self.start_time)
         else:
             self.start_time = t
         self.last_value = value
-        self.last_time = t
         self.last_width = marker_width
         fill_width = self.width - marker_width
         sys.stdout.write('\r' + self.marker * marker_width +

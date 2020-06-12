@@ -5,91 +5,70 @@
 
 import os
 import sys
-import shlex
-import struct
 import argparse
-from subprocess import Popen, CalledProcessError, PIPE
+
 from .progressbar import ProgressBar
+from .version import *
+from .mflash import MFlash, CalledProcessError
 
-MARKER = {'osx': '█', 'win': '#'}
-FILL = {'osx': '░', 'win': '-'}
+long_description = '''
+author  : %s
+email   : %s
+version : %s
 
-PREFIX = '-->'
-prefix_len = len(PREFIX)
+usage: mflash <chip> <command> [<args>] [<optinons>]
 
-def flasher(curdir, mcu, file_name, addr, debugger):
+chip:
+    mx1270
+    mx1290
+    mx1300
+    mx1310
+    mx1350
+    rtl8720c
 
-    hostos = 'osx' if sys.platform == 'darwin' else 'Linux64' if sys.platform == 'linux2' else 'win'
-    pbar = ProgressBar(os.path.getsize(file_name), marker=MARKER[hostos], fill=FILL[hostos])
-    openocd = os.path.join(curdir, 'openocd', hostos, 'openocd_mxos')
+command:
+    read    -f <file> -a <address> -s <size>    read data from flash to file
+    write   -f <file> -a <address>              write data from file to flash
+    erase   -a <address> -s <size>              erase flash
+    unlock                                      unlock flash
+    mac                                         read mac address of chip
+''' % (author, email, version)
 
-    cmd_line = openocd + \
-        ' -s ' + curdir + \
-        ' -f ' + os.path.join(curdir, 'interface', debugger + '.cfg') + \
-        ' -f ' + os.path.join(curdir, 'targets', mcu + '.cfg') + \
-        ' -f ' + os.path.join(curdir, 'flashloader', 'scripts', 'flash.tcl') + \
-        ' -f ' + os.path.join(curdir, 'flashloader', 'scripts', 'cmd.tcl') + \
-        ' -c init' + \
-        ' -c flash_alg_pre_init' + \
-        ' -c "flash_alg_init ' + os.path.join(curdir, 'flashloader', 'ramcode', mcu + '.elf').replace('\\', '/') + '"' + \
-        ' -c "erase ' + addr + ' ' + '%d'%os.path.getsize(file_name) + '"' + \
-        ' -c "write ' + file_name.replace('\\', '/') + ' ' + addr + '" -c shutdown'
-    proc = Popen(cmd_line, shell=True, universal_newlines=True, stderr=PIPE)
-    logtext = ''
-
-    while True:
-        out = proc.stderr.readline().strip()
-        logtext += out + '\r\n'
-        if proc.poll() != None:
-            if proc.poll():
-                print(logtext)
-            return
-        else:
-            if out[:prefix_len] == PREFIX:
-                pos = int(out[prefix_len:], 0)
-                pbar.update(pos)
-
-long_description = '''MXCHIP Flash Tool.
-
-Author  : Snow Yang
-Mail    : yangsw@mxchip.com
-Version : 1.2.11
-'''
 
 def main():
     parser = argparse.ArgumentParser(description=long_description, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-m', '--mcu', type=str, required=True, help='mcu name')
-    parser.add_argument('-f', '--file', type=str, required=True, help='file name')
-    parser.add_argument('-a', '--addr', type=str, required=True, help='address')
-    parser.add_argument('-d', '--debugger', type=str, required=False, default='jlink_swd', help='address')
+    parser.add_argument('chip', type=str, help='chip name')
+    parser.add_argument('command', type=str, help='command')
+    parser.add_argument('-f', '--file', type=str, help='file name')
+    parser.add_argument('-a', '--address', type=str, help='flash address')
+    parser.add_argument('-s', '--size', type=str, help='size')
+    args = parser.parse_args()
 
-    curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-    args = parser.parse_args(sys.argv[1:])
-
-    flasher(curdir, args.mcu, args.file, args.addr, args.debugger)
-
-def interactive():
-    print(long_description)
-
-    if len(sys.argv) == 1:
-        print('mflashi <file name>')
-        return 1
-    curdir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-    mcu_list = []
-    for root, dirs, files in os.walk(os.path.join(curdir, 'targets')):
-        for name in files:
-            if name.endswith('.cfg'):
-                mcu_list.append(os.path.splitext(name)[0])
-    _file = sys.argv[1]
-    print('MCU list:')
-    for i, name in enumerate(mcu_list):
-        print(' %d - %s'%(i, name))
-    mcu = mcu_list[int(input('MCU Number: '))]
-    addr = input('Download Address: ')
-
-    flasher(curdir, mcu, _file, addr)
-
-    input('Press any key to exit: ')
+    pbar = ProgressBar(0)
+    def progress_handler(out):
+            if '%' in out:
+                pos = int(out[:-1], 0)
+                pbar.update(int(pos * pbar.step))
+    mflash = MFlash(args.chip, progress_handler)
+    try:
+        if args.command == 'mac':
+            print(mflash.mac())
+        elif args.command == 'erase':
+            mflash.erase(int(args.address, 0), int(args.size, 0))
+        elif args.command == 'write':
+            filename = args.file.replace('\\', '/')
+            pbar.max_value = os.path.getsize(filename)
+            pbar.step = pbar.max_value / 100
+            mflash.write(filename, int(args.address, 0))
+        elif args.command == 'read':
+            filename = args.file.replace('\\', '/')
+            pbar.max_value = int(args.size, 0)
+            pbar.step = pbar.max_value / 100
+            mflash.read(filename, int(args.address, 0), int(args.size, 0))
+    except CalledProcessError as e:
+        print(e.cmd)
+        print(e.stdout)
+        print(e.stderr)
 
 if __name__ == "__main__":
     main()
