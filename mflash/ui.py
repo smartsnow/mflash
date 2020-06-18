@@ -1,58 +1,77 @@
 import os
+import time
 from tkinter import *
 from tkinter import filedialog
 from tkinter.ttk import *
+from threading import Thread
 
-window = Tk()
-window.title('mflash tool')
+from .version import *
+from .mflash import MFlash, CalledProcessError
 
-lbl_chip = Label(window, text='Chip')
-lbl_chip.grid(column=0, row=0, sticky=W)
-combo_chip = Combobox(window, width=8)
-combo_chip['values'] = ('mx1270', 'mx1290', 'mx1310')
-combo_chip.current(0)
-combo_chip.grid(column=1, row=0, sticky=W)
+root = Tk()
+root.title('mfash tools')
+root.resizable(0, 0)
 
-lbl_debugger = Label(window, text='Debugger')
-lbl_debugger.grid(column=0, row=1, sticky=W)
-combo_debugger = Combobox(window, width=8)
-combo_debugger['values'] = ('jlink_swd', 'jlink', 'stlink')
-combo_debugger.current(0)
-combo_debugger.grid(column=1, row=1, sticky=W)
+config = LabelFrame(root, labelanchor=N, text='Configure', borderwidth=2)
+config.grid(column=0, row=0, pady=2, padx=2, ipadx=2, ipady=2, sticky=E+W)
+
+Label(config, text='Chip').grid(column=0, row=0, pady=2, padx=2, sticky=E+W)
+chipvar = StringVar()
+chip = Combobox(config, textvariable=chipvar, width=10)
+chip['values'] = ('mx1270', 'mx1290', 'mx1310')
+chip.current(0)
+chip.grid(column=1, row=0, pady=2, padx=2, sticky=E+W)
+
+Label(config, text='Debugger').grid(
+    column=2, row=0, pady=2, padx=2, sticky=E+W)
+dbg = Combobox(config, width=10)
+dbg['values'] = ('jlink_swd', 'jlink', 'stlink-v2-1')
+dbg.current(0)
+dbg.grid(column=3, row=0, pady=2, padx=2, sticky=E+W)
+
+info = LabelFrame(root, labelanchor=N, text='Information', borderwidth=2)
+info.grid(column=0, row=1, pady=2, padx=2, ipadx=2, ipady=2, sticky=E+W)
+
+Label(info, text='MAC', borderwidth=5).grid(
+    column=0, row=0, pady=2, padx=2, sticky=E+W)
+macval = StringVar()
+Entry(info, textvariable=macval, width=14).grid(
+    column=1, row=0, pady=2, padx=2, sticky=E+W)
+
+cmd = LabelFrame(root, labelanchor=N, text='Flash Command', borderwidth=2)
+cmd.grid(column=0, row=2, pady=2, padx=2, ipadx=2, ipady=2, sticky=E+W)
+
+Label(cmd, text='Command', borderwidth=5, relief="solid", anchor=CENTER).grid(
+    column=0, row=0, pady=2, padx=2, sticky=E+W)
+Label(cmd, text='Address', borderwidth=5, relief="solid", anchor=CENTER).grid(
+    column=1, row=0, pady=2, padx=2, sticky=E+W)
+Label(cmd, text='Size', borderwidth=5, relief="solid", anchor=CENTER).grid(
+    column=2, row=0, pady=2, padx=2, sticky=E+W)
+Label(cmd, text='File', borderwidth=5, relief="solid", anchor=CENTER).grid(
+    column=3, row=0, pady=2, padx=2, sticky=E+W)
 
 
-def clicked():
-    # lbl.insert(0, text=combo_chip.get())
-    pass
+class FlashCmd():
+    def __init__(self, row, name, addr, size, file):
+        self.handler = None
 
-
-btn_mac = Button(window, text='Read MAC', command=clicked)
-btn_mac.grid(column=0, row=2, sticky=W)
-lbl_mac = Label(window, text='')
-lbl_mac.grid(column=1, row=2, sticky=W)
-
-lbl_address = Label(window, text='Address')
-lbl_address.grid(column=1, row=3, sticky=W)
-lbl_size = Label(window, text='Size')
-lbl_size.grid(column=2, row=3, sticky=W)
-lbl_file = Label(window, text='File')
-lbl_file.grid(column=3, row=3, sticky=W)
-
-
-class Flash():
-    def __init__(self, master, row, name, addr, size, file):
-        self.btn = Button(master, text=name, command=None)
-        self.btn.grid(column=0, row=row, sticky=W)
+        def handler_thread():
+            thread = Thread(target=self.handler, daemon=True)
+            thread.start()
+        self.btn = Button(cmd, text=name, command=handler_thread)
+        self.btn.grid(column=0, row=row, pady=2, padx=2, sticky=E+W)
         if addr:
-            self.addr = Entry(master, width=10)
-            self.addr.grid(column=1, row=row, sticky=W)
+            self.addrvar = IntVar()
+            self.addr = Entry(cmd, textvariable=self.addrvar, width=10)
+            self.addr.grid(column=1, row=row, pady=2, padx=2, sticky=E+W)
         if size:
-            self.size = Entry(master, width=10)
-            self.size.grid(column=2, row=row, sticky=W)
+            self.sizevar = IntVar()
+            self.size = Entry(cmd, textvariable=self.sizevar, width=10)
+            self.size.grid(column=2, row=row, pady=2, padx=2, sticky=E+W)
         if file:
-            strval = StringVar()
-            self.filename = Entry(master, textvariable=strval, width=32)
-            self.filename.grid(column=3, row=row, sticky=W)
+            self.fileval = StringVar()
+            self.filename = Entry(cmd, textvariable=self.fileval, width=32)
+            self.filename.grid(column=3, row=row, pady=2, padx=2, sticky=E+W)
 
             def clicked():
                 if file == 'r':
@@ -61,18 +80,32 @@ class Flash():
                 else:
                     name = filedialog.askopenfilename(
                         initialdir=os.path.dirname(__file__))
-                strval.set(name)
-            self.filechoose = Button(
-                master, text='...', command=clicked, width=3)
+                self.fileval.set(name)
+            self.filechoose = Button(cmd, text='...', command=clicked, width=3)
             self.filechoose.grid(column=4, row=row)
 
 
-flash_erase = Flash(window, 4, 'Erase', True, True, False)
-flash_write = Flash(window, 5, 'Write', True, False, 'w')
-flash_read = Flash(window, 6, 'Read', True, True, 'r')
+erase = FlashCmd(1, 'Erase', True, True, False)
+write = FlashCmd(2, 'Write', True, False, 'w')
+read = FlashCmd(3, 'Read', True, True, 'r')
 
-bar = Progressbar(window, style='black.Horizontal.TProgressbar')
-bar['value'] = 70
-bar.grid(column=0, row=7, columnspan=10, sticky=E+W)
+pbarval = IntVar()
+pbar = Progressbar(cmd, variable=pbarval)
+pbar.grid(row=4, column=0, columnspan=5, pady=2, padx=2, sticky=E+W)
 
-window.mainloop()
+
+def progress_handler(out):
+    if '%' in out:
+        pos = int(out[:-1], 0)
+        pbarval.set(pos)
+
+
+def read_handler():
+    mflash = MFlash(chipvar.get(), progress_handler)
+    macval.set(mflash.mac())
+    mflash.read(read.fileval.get(), read.addrvar.get(), read.sizevar.get())
+
+
+read.handler = read_handler
+
+root.mainloop()
