@@ -10,69 +10,80 @@ set CMD_ERASE 2
 set CMD_MAC   3
 set CMD_UNLOCK 4
 
-proc erase { addr size } {
+proc mflash_erase { addr size } {
 
-    mww $::FLASH_ALG_CMD_LOC $::CMD_ERASE
-    mww $::FLASH_ALG_ARG0_LOC $addr
-    mww $::FLASH_ALG_ARG1_LOC $size
+    mww $::MFLASH_CMD_LOC $::CMD_ERASE
+    mww $::MFLASH_ARG0_LOC $addr
+    mww $::MFLASH_ARG1_LOC $size
 
-    flash_alg_cmd_run 10000
+    mflash_cmd_run 10000
 }
 
-proc write { file addr } {
+proc mflash_write { file addr } {
 
+    set percent 0
     set size [file size $file]
     set remain $size
     while {$remain > 0} {
-        set n $($remain > $::FLASH_ALG_BUF_SIZE ? $::FLASH_ALG_BUF_SIZE : $remain)
-        mww $::FLASH_ALG_CMD_LOC $::CMD_WRITE
-        mww $::FLASH_ALG_ARG0_LOC $addr
-        mww $::FLASH_ALG_ARG1_LOC $n
-        load_image_bin $file $($size - $remain) $::FLASH_ALG_BUF_LOC $n
+        set n $($remain > $::mflash_buf_size ? $::mflash_buf_size : $remain)
+        mww $::MFLASH_CMD_LOC $::CMD_WRITE
+        mww $::MFLASH_ARG0_LOC $addr
+        mww $::MFLASH_ARG1_LOC $n
+        load_image_bin $file $($size - $remain) $::MFLASH_BUF_LOC $n
         set remain $($remain - $n)
         set addr $($addr + $n)
 
-        flash_alg_cmd_run 1000
-        puts stderr "-->0x[format %x $($size - $remain)]"
+        mflash_cmd_run 1000
+        
+        set percent_now $(($size - $remain) * 100 / $size)
+        if { $percent_now > $percent } {
+            set percent $percent_now
+            puts "$percent%"
+        }
     }
 }
 
-proc read { file addr size } {
-    exec echo -n > $file
+proc mflash_read { file addr size } {
 
+    file delete -force $file
+
+    set percent 0
     set remain $size
-    set tmpfile "tmp.bin"
     while {$remain > 0} {
-        set n $($remain > $::FLASH_ALG_BUF_SIZE ? $::FLASH_ALG_BUF_SIZE : $remain)
-        mww $::FLASH_ALG_CMD_LOC $::CMD_READ
-        mww $::FLASH_ALG_ARG0_LOC $addr
-        mww $::FLASH_ALG_ARG1_LOC $n
+        set n $($remain > $::mflash_buf_size ? $::mflash_buf_size : $remain)
+        mww $::MFLASH_CMD_LOC $::CMD_READ
+        mww $::MFLASH_ARG0_LOC $addr
+        mww $::MFLASH_ARG1_LOC $n
         set remain $($remain - $n)
         set addr $($addr + $n)
 
-        flash_alg_cmd_run 1000
+        mflash_cmd_run 1000
 
-        dump_image $tmpfile $::FLASH_ALG_BUF_LOC $n
-        exec cat $tmpfile >> $file
-        exec rm $tmpfile
+        dump_image $file $::MFLASH_BUF_LOC $n 1
+
+        set percent_now $(($size - $remain) * 100 / $size)
+        if { $percent_now > $percent } {
+            set percent $percent_now
+            puts "$percent%"
+        }
     }
 }
 
-proc mac { } {
+proc mflash_mac { } {
     
-    mww $::FLASH_ALG_CMD_LOC $::CMD_MAC
+    mww $::MFLASH_CMD_LOC $::CMD_MAC
 
-    flash_alg_cmd_run 1000
+    mflash_cmd_run 1000
 
-    mem2array mac_arr 8 $::FLASH_ALG_BUF_LOC 6
+    mem2array mac_arr 8 $::MFLASH_BUF_LOC 6
     set mac_val [expr $mac_arr(5)+($mac_arr(4)<<8)+($mac_arr(3)<<16)+($mac_arr(2)<<24)+($mac_arr(1)<<32)+($mac_arr(0)<<40)]
 
     puts [format "%012X" $mac_val]
 }
 
-proc unlock { } {
+proc mflash_unlock { } {
     
-    mww $::FLASH_ALG_CMD_LOC $::CMD_UNLOCK
+    mww $::MFLASH_CMD_LOC $::CMD_UNLOCK
 
-    flash_alg_cmd_run 1000
+    mflash_cmd_run 1000
 }

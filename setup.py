@@ -10,6 +10,7 @@ import subprocess
 import sys
 import webbrowser
 import shutil
+from mflash import version
 
 here = path.abspath(path.dirname(__file__))
 
@@ -40,7 +41,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.2.6',  # Required
+    version=version.version,  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -136,7 +137,8 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['qdarkstyle==2.7', 'pyqt5==5.10.1'],  # Optional
+    
+    install_requires=['qdarkstyle', 'pyqt5'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -174,10 +176,16 @@ setup(
             'openocd/win/libftdi1.dll',
             'targets/mx1270.cfg',
             'targets/mx1290.cfg',
-            'targets/mx1410.cfg',
-            'flashloader/ramcode/mx1290.elf',
+            'targets/mx1300.cfg',
+            'targets/mx1310.cfg',
+            'targets/mx1350.cfg',
+            'targets/rtl8762c.cfg',
             'flashloader/ramcode/mx1270.elf',
-            'flashloader/ramcode/mx1410.elf',
+            'flashloader/ramcode/mx1290.elf',
+            'flashloader/ramcode/mx1300.elf',
+            'flashloader/ramcode/mx1310.elf',
+            'flashloader/ramcode/mx1350.elf',
+            'flashloader/ramcode/rtl8762c.elf',
             'flashloader/scripts/cmd.tcl',
             'flashloader/scripts/flash.tcl',
             'resources/flash.png',
@@ -230,8 +238,5 @@ if sys.platform == 'win32':
         '@=hex(2):' + ',00,'.join([i.to_bytes(1, 'big').hex() for i in ('Wscript.exe "'+exefile+'"' + ' "%1"').encode()]) + ',00'
     open(regfile, 'w').write(regdata)
     system(regfile)
-elif sys.platform == 'darwin':
-    workflow = path.join(curdir, 'mflash.workflow')
-    shutil.copytree(workflow, '~/Library/Services')
 
 webbrowser.open('https://www.mxchip.com')
