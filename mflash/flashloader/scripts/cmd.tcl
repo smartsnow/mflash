@@ -20,27 +20,37 @@ proc mflash_erase { addr size } {
 }
 
 proc mflash_write { file addr } {
+	set ffstr [string repeat \xff 4096]
+	set f [open $file r]
 
     set percent 0
     set size [file size $file]
     set remain $size
     while {$remain > 0} {
         set n $($remain > $::mflash_buf_size ? $::mflash_buf_size : $remain)
-        mww $::MFLASH_CMD_LOC $::CMD_WRITE
-        mww $::MFLASH_ARG0_LOC $addr
-        mww $::MFLASH_ARG1_LOC $n
-        load_image_bin $file $($size - $remain) $::MFLASH_BUF_LOC $n
+
+        set data [read $f $n]
+        set need_download [string equal -length $n $data $ffstr]
+        
+        if {$need_download == 0 } {
+	        mww $::MFLASH_CMD_LOC $::CMD_WRITE
+	        mww $::MFLASH_ARG0_LOC $addr
+	        mww $::MFLASH_ARG1_LOC $n
+	        load_image_bin $file $($size - $remain) $::MFLASH_BUF_LOC $n
+	        
+	        mflash_cmd_run 1000
+		}
+		
         set remain $($remain - $n)
         set addr $($addr + $n)
-
-        mflash_cmd_run 1000
-        
         set percent_now $(($size - $remain) * 100 / $size)
         if { $percent_now > $percent } {
             set percent $percent_now
             puts "$percent%"
         }
     }
+
+    close $f
 }
 
 proc mflash_read { file addr size } {
