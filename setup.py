@@ -1,15 +1,11 @@
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-from os import path, system
+from os import path
 # io.open is needed for projects that support Python 2.7
 # It ensures open() defaults to text mode with universal newlines,
 # and accepts an argument to specify the text encoding
 # Python 3 only projects can skip this import
 from io import open
-import subprocess
-import sys
-import webbrowser
-import shutil
 
 here = path.abspath(path.dirname(__file__))
 
@@ -40,7 +36,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.2.11',  # Required
+    version='1.3.0',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -137,7 +133,7 @@ setup(
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     
-    install_requires=['qdarkstyle', 'pyqt5'],  # Optional
+    install_requires=[],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -187,16 +183,6 @@ setup(
             'flashloader/ramcode/rtl8762c.elf',
             'flashloader/scripts/cmd.tcl',
             'flashloader/scripts/flash.tcl',
-            'resources/flash.png',
-            'resources/download.png',
-            'resources/log.png',
-            'resources/help.png',
-            'resources/connection.png',
-            'resources/jlink_swd.png',
-            'resources/stlink-v2-1.png',
-            'resources/stlink-v2.png',
-            'resources/mxlink.png',
-            'resources/open.png',
         ]
     },
 
@@ -218,24 +204,6 @@ setup(
     entry_points={  # Optional
         'console_scripts': [
             'mflash=mflash.main:main',
-            'mflashi=mflash.ui:main',
         ],
     },
-
-    scripts = ['start.vbs']
 )
-
-curdir = path.join(sys.prefix, 'Scripts')
-if sys.platform == 'win32':
-    # if not register
-    exefile = path.join(curdir, 'start.vbs')
-    regfile = path.join(curdir, 'rightclick.reg')
-    regdata = 'Windows Registry Editor Version 5.00\r\n' + \
-        '[HKEY_CLASSES_ROOT\*\shell\mflash]\r\n' + \
-        '@="mflash - Download"\r\n' + \
-        '[HKEY_CLASSES_ROOT\*\shell\mflash\command]\r\n' + \
-        '@=hex(2):' + ',00,'.join([i.to_bytes(1, 'big').hex() for i in ('Wscript.exe "'+exefile+'"' + ' "%1"').encode()]) + ',00'
-    open(regfile, 'w').write(regdata)
-    system(regfile)
-
-webbrowser.open('https://www.mxchip.com')
